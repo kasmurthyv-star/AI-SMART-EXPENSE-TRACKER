@@ -1,0 +1,24 @@
+body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .upi-gradient {
+      background: linear-gradient(135deg, #3b1464 0%, #5f259f 55%, #0078b8 100%);
+    }
+    .qr-scan-line {
+      animation: scanMove 2.2s infinite ease-in-out;
+    }
+    @keyframes scanMove {
+      0%, 100% { top: 10%; }
+      50% { top: 86%; }
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }

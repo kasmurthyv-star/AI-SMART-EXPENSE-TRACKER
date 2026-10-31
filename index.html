@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PayPulse UPI — Smart Payments &amp; Automatic Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            phonepe: '#5f259f',
+            paytm: '#00baf2',
+            paytmDark: '#002970',
+            brand: {
+              50: '#f3f0ff',
+              100: '#e5dbff',
+              500: '#6739b7',
+              600: '#5f259f',
+              700: '#4b1d7f',
+              900: '#2b0f4c'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+  <!-- Top Header -->
+  <header class="upi-gradient text-white shadow-lg sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner">
+          <svg class="w-6 h-6 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight">PayPulse UPI</h1>
+            <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-300/30">Auto-Tracker</span>
+          </div>
+          <p class="text-xs text-purple-100/80 hidden sm:block">PhonePe &amp; Paytm Unified Expense Intelligence</p>
+        </div>
+      </div>
+
+      <!-- Navigation Pills -->
+      <nav class="flex items-center gap-1 bg-black/20 p-1 rounded-xl backdrop-blur-sm overflow-x-auto max-w-full" aria-label="Main Navigation">
+        <button type="button" id="navBtnHome" onclick="switchTab('home')" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white text-purple-900 shadow-sm whitespace-nowrap">
+          UPI Hub &amp; Feed
+        </button>
+        <button type="button" id="navBtnAuto" onclick="switchTab('auto')" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-white/90 hover:bg-white/10 whitespace-nowrap flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          SMS &amp; Auto-Sync
+        </button>
+        <button type="button" id="navBtnAnalytics" onclick="switchTab('analytics')" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-white/90 hover:bg-white/10 whitespace-nowrap">
+          Analytics &amp; Budgets
+        </button>
+        <button type="button" id="navBtnAi" onclick="switchTab('ai')" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-white/90 hover:bg-white/10 whitespace-nowrap flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-300 animate-ping"></span>
+          AI Copilot &amp; SQLite
+        </button>
+        <button type="button" id="navBtnBlueprint" onclick="switchTab('blueprint')" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all text-white/90 hover:bg-white/10 whitespace-nowrap">
+          UPI &amp; SDK Blueprint
+        </button>
+      </nav>
+
+      <!-- Active Bank & Quick Actions -->
+      <div class="flex items-center gap-2">
+        <button type="button" id="headerLinkBankBtn" onclick="openBankLoginModal()" class="px-3 py-1.5 rounded-lg bg-emerald-400/20 hover:bg-emerald-400/30 border border-emerald-300/40 text-emerald-100 text-xs font-semibold flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span id="headerActiveBankBadge">Link / Login Bank</span>
+        </button>
+        <button type="button" id="headerCheckBalanceBtn" onclick="openPinModal('balance')" class="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-medium flex items-center gap-1.5 transition">
+          <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+          </svg>
+          <span id="headerBalanceLabel">Check A/C Balance</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- Top KPI Strip (Always visible: Debits, Credits, Net Cashflow, Budget) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-rose-500">Total Spent (Debits)</span>
+          <span class="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+          </span>
+        </div>
+        <div class="mt-2">
+          <p id="kpiTotalSpent" class="text-xl sm:text-2xl font-extrabold text-rose-600">-₹0</p>
+          <p id="kpiTxCount" class="text-xs text-slate-500 mt-0.5">0 debit payments</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Total Credited (Income)</span>
+          <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+          </span>
+        </div>
+        <div class="mt-2">
+          <p id="kpiTotalCredited" class="text-xl sm:text-2xl font-extrabold text-emerald-600">+₹0</p>
+          <p id="kpiCreditCount" class="text-xs text-slate-500 mt-0.5">0 credits / refunds</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Net Cashflow &amp; Top Spend</span>
+          <span class="p-1.5 rounded-lg bg-cyan-50 text-cyan-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+        </div>
+        <div class="mt-2">
+          <p id="kpiNetCashflow" class="text-xl sm:text-2xl font-extrabold text-slate-900">+₹0</p>
+          <div class="flex items-center justify-between text-xs text-slate-500 mt-0.5">
+            <span id="kpiTopCategory" class="truncate font-semibold text-slate-700">Food &amp; Dining</span>
+            <span id="kpiTopCategoryAmt" class="font-bold text-slate-900">₹0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Monthly Budget Left</span>
+          <span id="kpiAutoRate" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">100% Auto-Captured</span>
+        </div>
+        <div class="mt-2">
+          <p id="kpiBudgetRemaining" class="text-xl sm:text-2xl font-extrabold text-emerald-600">₹0</p>
+          <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div id="kpiBudgetBar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 45%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: UPI HUB & FEED -->
+    <section id="tabPanelHome" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: PhonePe / Paytm Style Payment Terminal (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+
+          <!-- Quick Action Tiles (PhonePe / Paytm style) -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-bold uppercase tracking-wider text-slate-700">UPI Money Transfers</h2>
+              <span class="text-xs font-medium text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full">Auto-Logs Expense</span>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+              <button type="button" id="btnOpenQrScanner" onclick="openQrModal()" class="group p-2.5 rounded-xl bg-purple-50/70 hover:bg-purple-600 hover:text-white transition flex flex-col items-center gap-2 border border-purple-100">
+                <div class="w-10 h-10 rounded-xl bg-purple-600 group-hover:bg-white/20 text-white flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                  </svg>
+                </div>
+                <span class="text-xs font-semibold leading-tight">Scan Any QR</span>
+              </button>
+
+              <button type="button" id="btnFocusPayForm" onclick="focusPayInput()" class="group p-2.5 rounded-xl bg-cyan-50/70 hover:bg-cyan-600 hover:text-white transition flex flex-col items-center gap-2 border border-cyan-100">
+                <div class="w-10 h-10 rounded-xl bg-cyan-600 group-hover:bg-white/20 text-white flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+                <span class="text-xs font-semibold leading-tight">To Mobile / VPA</span>
+              </button>
+
+              <button type="button" id="btnOpenSplitBill" onclick="openSplitModal()" class="group p-2.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-600 hover:text-white transition flex flex-col items-center gap-2 border border-emerald-100">
+                <div class="w-10 h-10 rounded-xl bg-emerald-600 group-hover:bg-white/20 text-white flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </div>
+                <span class="text-xs font-semibold leading-tight">Split Expense</span>
+              </button>
+
+              <button type="button" id="btnQuickSyncSms" onclick="switchTab('auto')" class="group p-2.5 rounded-xl bg-amber-50/70 hover:bg-amber-600 hover:text-white transition flex flex-col items-center gap-2 border border-amber-100">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 group-hover:bg-white/20 text-white flex items-center justify-center shadow-sm">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                  </svg>
+                </div>
+                <span class="text-xs font-semibold leading-tight">Parse SMS</span>
+              </button>
+            </div>
+
+            <!-- Frequent Merchants / Quick Tap Preset Row -->
+            <div class="mt-5 pt-4 border-t border-slate-100">
+              <p class="text-xs font-semibold text-slate-500 mb-2.5">Tap a Merchant or Contact to Instant-Fill:</p>
+              <div class="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                <button type="button" onclick="prefillMerchant('Swiggy Instamart', 'swiggy@ybl', 420, 'PhonePe')" class="px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 text-xs font-medium whitespace-nowrap transition">
+                  🍔 Swiggy (₹420)
+                </button>
+                <button type="button" onclick="prefillMerchant('Uber India Rides', 'uber@axis', 285, 'Paytm')" class="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-medium whitespace-nowrap transition">
+                  🚕 Uber Auto (₹285)
+                </button>
+                <button type="button" onclick="prefillMerchant('Zepto Groceries', 'zepto@icici', 640, 'PhonePe')" class="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-medium whitespace-nowrap transition">
+                  🛒 Zepto (₹640)
+                </button>
+                <button type="button" onclick="prefillMerchant('Jio Prepaid Recharge', 'jio@paytm', 349, 'Paytm')" class="px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 text-xs font-medium whitespace-nowrap transition">
+                  📱 Jio 5G (₹349)
+                </button>
+                <button type="button" onclick="prefillMerchant('Apollo Pharmacy', 'apollo@hdfcbank', 520, 'PhonePe')" class="px-3 py-1.5 rounded-full bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-medium whitespace-nowrap transition">
+                  💊 Apollo (₹520)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Send Money & Auto-Categorize Form -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Instant UPI Payment</h3>
+                <p class="text-xs text-slate-500">Auto-detects category from merchant name or VPA</p>
+              </div>
+              <span id="liveAutoCategoryBadge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800">
+                Auto: Food &amp; Dining
+              </span>
+            </div>
+
+            <form id="upiPaymentForm" onsubmit="handleInitiatePayment(event)" class="space-y-3.5">
+              <!-- Debit vs Credit Transaction Mode Switcher -->
+              <div class="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
+                <button type="button" id="payTypeBtnDebit" onclick="setPaymentTypeMode('DEBIT')" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all bg-white text-rose-700 shadow-sm flex items-center justify-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span>🔴 Pay / Send (Debit -)</span>
+                </button>
+                <button type="button" id="payTypeBtnCredit" onclick="setPaymentTypeMode('CREDIT')" class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>🟢 Receive / Income (Credit +)</span>
+                </button>
+              </div>
+
+              <div>
+                <label for="payMerchantInput" id="payMerchantLabel" class="block text-xs font-semibold text-slate-600 mb-1">Merchant / Payee Name (Debit -)</label>
+                <input id="payMerchantInput" type="text" required placeholder="e.g., Zomato, Blinkit, BESCOM, Chai Point" value="Zomato Order" oninput="updateLiveCategoryPreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="payVpaInput" class="block text-xs font-semibold text-slate-600 mb-1">UPI ID (VPA) or Mobile</label>
+                  <input id="payVpaInput" type="text" required placeholder="merchant@ybl or 9876543210" value="zomato@ybl" oninput="updateLiveCategoryPreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+                <div>
+                  <label for="payAmountInput" class="block text-xs font-semibold text-slate-600 mb-1">Amount (₹)</label>
+                  <input id="payAmountInput" type="number" min="1" max="100000" step="1" required placeholder="0" value="360" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="payAppSelect" class="block text-xs font-semibold text-slate-600 mb-1">Payment App / Rail</label>
+                  <select id="payAppSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                    <option value="PhonePe">PhonePe UPI (@ybl)</option>
+                    <option value="Paytm">Paytm UPI (@paytm)</option>
+                    <option value="GPay">Google Pay (@okicici)</option>
+                    <option value="Net Banking">Net Banking (IMPS/NEFT)</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Debit Card">Debit Card</option>
+                    <option value="PayPulse Direct">PayPulse UPI Lite (No PIN &lt; ₹500)</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="payCategoryOverride" class="block text-xs font-semibold text-slate-600 mb-1">Category (Auto or Override)</label>
+                  <select id="payCategoryOverride" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                    <option value="AUTO">✨ Smart Auto-Detect</option>
+                    <option value="Food & Dining">🍔 Food &amp; Dining</option>
+                    <option value="Groceries">🛒 Groceries</option>
+                    <option value="Travel & Commute">🚕 Travel &amp; Commute</option>
+                    <option value="Bills & Utilities">⚡ Bills &amp; Utilities</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Health & Pharmacy">💊 Health &amp; Pharmacy</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Transfers & Friends">🤝 Transfers &amp; Friends</option>
+                    <option value="Others">📦 Others</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label for="payNoteInput" class="block text-xs font-semibold text-slate-600 mb-1">UPI Note / Tag (Optional)</label>
+                <input id="payNoteInput" type="text" placeholder="Dinner, cab to office, monthly wifi..." value="Evening snacks" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+              </div>
+
+              <button type="submit" id="btnSubmitPay" class="w-full py-3 rounded-xl upi-gradient hover:opacity-95 text-white font-bold text-sm shadow-md flex items-center justify-center gap-2 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                <span>Proceed to Pay &amp; Auto-Track</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right Column: Auto-Tracked Expense Ledger & Filters (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
+
+          <!-- Budget Warning Banner (Dynamic) -->
+          <div id="budgetAlertBanner" class="hidden rounded-2xl p-4 bg-amber-50 border border-amber-200 text-amber-900 flex items-start justify-between gap-3">
+            <div class="flex items-start gap-2.5">
+              <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <div>
+                <p class="text-xs sm:text-sm font-bold" id="budgetAlertTitle">Category Budget Alert</p>
+                <p class="text-xs text-amber-800 mt-0.5" id="budgetAlertText"></p>
+              </div>
+            </div>
+            <button type="button" onclick="switchTab('analytics')" class="text-xs font-bold text-amber-900 underline whitespace-nowrap">Adjust Budgets</button>
+          </div>
+
+          <!-- Transaction Feed Card -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex-1 flex flex-col">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 class="text-base font-bold text-slate-900">Unified UPI Expense Feed</h2>
+                <p class="text-xs text-slate-500">Real-time transactions across PhonePe, Paytm, GPay &amp; Bank SMS</p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button type="button" id="btnSimulateIncomingSms" onclick="simulateRandomIncomingUpi()" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Simulate Live UPI Alert</span>
+                </button>
+                <button type="button" id="btnExportCsv" onclick="exportTransactionsCsv()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            <!-- Search & Filters (Search, Type, Category, Channel) -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
+              <div class="relative sm:col-span-1">
+                <input id="txSearchInput" type="text" placeholder="Search merchant, VPA, Ref..." oninput="renderTransactionList()" class="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+                <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+              </div>
+
+              <select id="txTypeFilter" onchange="renderTransactionList()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="ALL">All Types (Debits &amp; Credits)</option>
+                <option value="DEBIT">🔴 Debits Only (-)</option>
+                <option value="CREDIT">🟢 Credits Only (+)</option>
+              </select>
+
+              <select id="txCategoryFilter" onchange="renderTransactionList()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="ALL">All Categories</option>
+                <option value="Food & Dining">🍔 Food &amp; Dining</option>
+                <option value="Groceries">🛒 Groceries</option>
+                <option value="Travel & Commute">🚕 Travel &amp; Commute</option>
+                <option value="Bills & Utilities">⚡ Bills &amp; Utilities</option>
+                <option value="Shopping">🛍️ Shopping</option>
+                <option value="Health & Pharmacy">💊 Health &amp; Pharmacy</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Transfers & Friends">🤝 Transfers &amp; Friends</option>
+                <option value="Others">📦 Others</option>
+              </select>
+
+              <select id="txSourceFilter" onchange="renderTransactionList()" class="px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="ALL">All Channels (UPI / Cards / NetBanking)</option>
+                <option value="PhonePe">PhonePe</option>
+                <option value="Paytm">Paytm</option>
+                <option value="GPay">Google Pay (GPay)</option>
+                <option value="Net Banking">Net Banking</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Debit Card">Debit Card</option>
+                <option value="BHIM UPI">BHIM UPI</option>
+                <option value="PayPulse Direct">PayPulse Direct</option>
+                <option value="SMS Auto-Sync">SMS Auto-Sync</option>
+              </select>
+            </div>
+
+            <!-- Date Filter & Range Strip (Day-to-Day, Month, Year & Export) -->
+            <div class="bg-purple-50/60 p-3 rounded-2xl border border-purple-100 mb-4 space-y-2.5">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-purple-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span>Filter &amp; Download by Date / Month / Year:</span>
+                  </span>
+                  <span id="activeDateFilterBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white text-purple-900 border border-purple-200 shadow-xs">
+                    All Dates
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" id="btnResetDateFilter" onclick="resetDateFilter()" class="text-[11px] font-bold text-rose-600 hover:underline hidden">✕ Clear Date Filter</button>
+                  <button type="button" id="btnExportCustomModal" onclick="openExportModal()" class="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition shadow-xs flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <span>Export CSV by Date...</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Date Selection Controls -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div>
+                  <label for="filterPresetSelect" class="block font-semibold text-slate-600 mb-1">Preset Timeframe</label>
+                  <select id="filterPresetSelect" onchange="handlePresetDateChange(this.value)" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+                    <option value="ALL">All Time</option>
+                    <option value="THIS_MONTH">This Month (Oct 2026)</option>
+                    <option value="LAST_MONTH">Last Month (Sep 2026)</option>
+                    <option value="YEAR_2026">Full Year 2026</option>
+                    <option value="YEAR_2025">Full Year 2025</option>
+                    <option value="CUSTOM">Custom Range →</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="filterMonthSelect" class="block font-semibold text-slate-600 mb-1">Select Month</label>
+                  <select id="filterMonthSelect" onchange="handleMonthYearChange()" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+                    <option value="ALL">All Months</option>
+                    <option value="01">01 - January</option>
+                    <option value="02">02 - February</option>
+                    <option value="03">03 - March</option>
+                    <option value="04">04 - April</option>
+                    <option value="05">05 - May</option>
+                    <option value="06">06 - June</option>
+                    <option value="07">07 - July</option>
+                    <option value="08">08 - August</option>
+                    <option value="09">09 - September</option>
+                    <option value="10">10 - October</option>
+                    <option value="11">11 - November</option>
+                    <option value="12">12 - December</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="filterYearSelect" class="block font-semibold text-slate-600 mb-1">Select Year</label>
+                  <select id="filterYearSelect" onchange="handleMonthYearChange()" class="w-full px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+                    <option value="ALL">All Years</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="filterQuickDayRange" class="block font-semibold text-slate-600 mb-1">From / To Day Pickers</label>
+                  <button type="button" id="filterQuickDayRange" onclick="openExportModal()" class="w-full py-1.5 px-2.5 rounded-xl border border-purple-300 bg-white hover:bg-purple-50 text-purple-800 font-semibold text-left truncate transition">
+                    Set Day-to-Day Dates...
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transaction List Container -->
+            <div id="transactionListContainer" class="space-y-2.5 overflow-y-auto max-h-[520px] pr-1 custom-scrollbar">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: SMS & NOTIFICATION AUTO-CAPTURE ENGINE -->
+    <section id="tabPanelAuto" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left: Live SMS / Notification Parser Sandbox (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">Zero-Touch Expense Capture</span>
+              <h2 class="text-lg font-bold text-slate-900 mt-2">Real-Time Bank SMS &amp; App Notification Parser</h2>
+              <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Test how the engine automatically extracts Amount, Merchant, UPI Reference ID, Source App, and Expense Category from Indian bank SMS or PhonePe/Paytm push notifications.
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 1: Select Payment Mode / Channel Dropdown -->
+          <div>
+            <label for="smsSourceChannelSelect" class="block text-xs font-semibold text-slate-700 mb-1.5">
+              1. Select Payment Mode / Source Channel
+            </label>
+            <select id="smsSourceChannelSelect" onchange="parseSmsLive()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+              <option value="PhonePe">PhonePe</option>
+              <option value="Paytm">Paytm</option>
+              <option value="GPay">Google Pay (GPay)</option>
+              <option value="Net Banking">Net Banking (NEFT / IMPS / RTGS)</option>
+              <option value="Credit Card">Credit Card</option>
+              <option value="Debit Card">Debit Card</option>
+              <option value="BHIM UPI">BHIM / Other UPI</option>
+              <option value="AUTO">✨ Auto-Detect from SMS Text</option>
+            </select>
+          </div>
+
+          <!-- Textarea for Raw SMS + Direct Submit to SQLite Database Button -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label for="smsRawInput" class="block text-xs font-semibold text-slate-700">2. Paste Your Bank SMS or Notification Text</label>
+              <span class="text-[11px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">POST /api/parse-sms → paypulse.db</span>
+            </div>
+            <textarea id="smsRawInput" rows="3" oninput="parseSmsLive()" class="w-full p-3.5 rounded-xl border border-slate-300 font-mono text-xs sm:text-sm text-slate-800 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-600" placeholder="Paste any bank debit SMS or PhonePe/Paytm notification here..."></textarea>
+
+            <!-- Action Bar Directly Below Textarea -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <button type="button" id="btnSubmitSmsToDb" onclick="commitParsedSmsToLedger()" class="flex-1 py-2.5 px-4 rounded-xl upi-gradient hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 transition">
+                <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <span>Submit &amp; Transfer SMS to Database (SQLite)</span>
+              </button>
+              <button type="button" id="btnClearSmsText" onclick="clearSmsInputBox()" class="py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition">
+                Clear Text
+              </button>
+            </div>
+
+            <!-- Live SQLite Transfer Confirmation Banner -->
+            <div id="smsDbTransferStatus" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span id="smsDbTransferText" class="font-semibold">Transferred to SQLite database (`paypulse.db` → `transactions` table).</span>
+              </div>
+              <button type="button" onclick="switchTab('home')" class="text-xs font-bold text-purple-700 underline whitespace-nowrap">View in Feed →</button>
+            </div>
+          </div>
+
+          <!-- Live Extracted Telemetry Card -->
+          <div class="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Live Regex + NLP Extraction Output</span>
+              <span id="smsConfidenceBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                Ready to Parse
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 block">Amount</span>
+                  <span id="parsedTypeBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">Debit</span>
+                </div>
+                <span id="parsedAmount" class="text-base font-extrabold text-emerald-400 mt-0.5 block">₹485.00</span>
+              </div>
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <span class="text-slate-400 block">Merchant / Payee</span>
+                <span id="parsedMerchant" class="text-sm font-bold text-white mt-0.5 block truncate">Swiggy</span>
+              </div>
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <span class="text-slate-400 block">Auto-Category</span>
+                <span id="parsedCategory" class="text-sm font-bold text-amber-300 mt-0.5 block">Food &amp; Dining</span>
+              </div>
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <span class="text-slate-400 block">VPA / Channel</span>
+                <span id="parsedVpa" class="text-xs font-mono text-cyan-300 mt-0.5 block truncate">swiggy@ybl</span>
+              </div>
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <span class="text-slate-400 block">UPI Ref No (RRN)</span>
+                <span id="parsedRef" class="text-xs font-mono text-slate-200 mt-0.5 block">629384719201</span>
+              </div>
+              <div class="bg-slate-800/80 p-3 rounded-xl">
+                <span class="text-slate-400 block">Source App / Bank</span>
+                <span id="parsedApp" class="text-xs font-bold text-purple-300 mt-0.5 block">PhonePe (HDFC)</span>
+              </div>
+            </div>
+
+            <div class="pt-2 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" id="btnClearDemoTx" onclick="clearDemoDataAndResetPersonal()" class="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/30 font-semibold text-xs transition">
+                🗑️ Clear Sample Data (Start Fresh)
+              </button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" id="btnBulkParseSms" onclick="commitBulkSmsMessages()" class="px-3.5 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs sm:text-sm transition shadow-sm">
+                  ⚡ Bulk Import All Pasted SMS Lines
+                </button>
+                <button type="button" id="btnAddParsedSms" onclick="commitParsedSmsToLedger()" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs sm:text-sm transition shadow-sm">
+                  + Log Extracted Expense to Tracker
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Own Bank Statement (.csv) or SMS Backup (.txt) -->
+          <div class="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-purple-950">Import Your Own SMS Backup (`.txt`) or Bank Statement (`.csv`)</h3>
+                <p class="text-xs text-slate-600">Select a `.txt` file containing copied bank SMS alerts (one per line) or a `.csv` statement from your bank/PhonePe/Paytm.</p>
+              </div>
+              <label for="ownStatementFileInput" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer transition whitespace-nowrap shadow-sm">
+                📂 Upload .TXT / .CSV File
+              </label>
+              <input id="ownStatementFileInput" type="file" accept=".txt,.csv" onchange="handleOwnFileImport(event)" class="hidden" />
+            </div>
+          </div>
+
+          <!-- Real Phone SMS Auto-Forwarding Webhook Guide (Android & iOS) -->
+          <div class="p-4 rounded-2xl bg-slate-900 text-slate-100 space-y-2.5 border border-slate-800">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Real-Time Phone → Flask SMS Webhook</span>
+              <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-white/10 text-cyan-300">POST /api/webhook/sms</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              To automatically read your <strong>real incoming bank &amp; UPI SMS messages</strong> from your phone without manual pasting:
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700">
+                <p class="font-bold text-cyan-300">📱 Android (SMS Forwarder / MacroDroid)</p>
+                <p class="text-slate-300 mt-1">Filter SMS containing <code>debited</code>, <code>UPI</code>, or <code>paid</code> and auto-POST JSON <code>{"smsText": "%sms_body%"}</code> to your Flask server URL <code>http://&lt;your-pc-ip&gt;:5000/api/webhook/sms</code>.</p>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700">
+                <p class="font-bold text-purple-300">🍏 iPhone (iOS Shortcuts Automation)</p>
+                <p class="text-slate-300 mt-1">Create a Personal Automation: <em>When I get a Message containing "debited"</em> → <em>Get Contents of URL</em> (<code>POST /api/webhook/sms</code> with <code>Shortcut Input</code>).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Account Aggregator (AA) & Statement Batch Sync (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-700 bg-cyan-50 px-2.5 py-1 rounded-full">RBI Account Aggregator (AA)</span>
+              <span class="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Connected
+              </span>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">Auto-Sync PhonePe &amp; Paytm Bank Statements</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              On iOS or devices without SMS permissions, your app connects via India's <strong>Account Aggregator (Setu / Finvu / Anumati)</strong> to pull encrypted FIP bank statements and categorize every UPI debit automatically.
+            </p>
+
+            <div id="linkedBanksListContainer" class="space-y-2.5 pt-1">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-bold text-slate-800">HDFC Bank •••• 9104</p>
+                  <p class="text-[11px] text-slate-500">Linked to PhonePe (`@ybl`) &amp; Paytm (`@paytm`)</p>
+                </div>
+                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">AA Active</span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div>
+                  <p class="text-xs font-bold text-slate-800">State Bank of India •••• 4821</p>
+                  <p class="text-[11px] text-slate-500">Linked to Google Pay (`@oksbi`)</p>
+                </div>
+                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">AA Active</span>
+              </div>
+            </div>
+
+            <button type="button" id="btnOpenBankLoginFromAa" onclick="openBankLoginModal()" class="w-full py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <span>+ Login / Link New Bank Account (OTP / AA Consent)</span>
+            </button>
+
+            <button type="button" id="btnTriggerAaSync" onclick="runBatchAaSync()" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+              <span>Fetch Latest 4 UPI Transactions via AA Sync</span>
+            </button>
+          </div>
+
+          <!-- Custom Rule Trainer Card -->
+          <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-3.5">
+            <h3 class="text-base font-bold text-slate-900">Custom Merchant Auto-Tag Rule</h3>
+            <p class="text-xs text-slate-500">Teach the engine to always assign a specific category when a keyword or VPA appears in PhonePe or Paytm.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <input id="customRuleKeyword" type="text" placeholder="Keyword (e.g., CultFit, Dmart)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+              <select id="customRuleCategory" class="px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="Food & Dining">🍔 Food &amp; Dining</option>
+                <option value="Groceries">🛒 Groceries</option>
+                <option value="Travel & Commute">🚕 Travel &amp; Commute</option>
+                <option value="Bills & Utilities">⚡ Bills &amp; Utilities</option>
+                <option value="Shopping">🛍️ Shopping</option>
+                <option value="Health & Pharmacy">💊 Health &amp; Pharmacy</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Transfers & Friends">🤝 Transfers &amp; Friends</option>
+                <option value="Others">📦 Others</option>
+              </select>
+            </div>
+            <button type="button" id="btnAddCustomRule" onclick="saveCustomMerchantRule()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm transition">
+              Save Auto-Categorization Rule
+            </button>
+            <div id="customRulesPills" class="flex flex-wrap gap-1.5 pt-1"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: ANALYTICS & BUDGETS -->
+    <section id="tabPanelAnalytics" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Category Doughnut Chart (6 cols) -->
+        <div class="lg:col-span-6 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Spending by Category</h2>
+              <p class="text-xs text-slate-500">Live breakdown of all UPI &amp; SMS-captured expenses</p>
+            </div>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="categoryDoughnutChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Payment Rail / App Comparison Bar Chart (6 cols) -->
+        <div class="lg:col-span-6 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Spend by UPI App / Channel</h2>
+              <p class="text-xs text-slate-500">PhonePe vs. Paytm vs. PayPulse Direct vs. SMS Sync</p>
+            </div>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="appSourceBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Wise Budget Limits & Progress -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Monthly Category Budgets &amp; Threshold Alerts</h2>
+            <p class="text-xs text-slate-500">Adjust any category cap below to immediately recalculate your monthly budget health</p>
+          </div>
+          <button type="button" id="btnResetBudgets" onclick="resetDefaultBudgets()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+            Reset Default Budgets
+          </button>
+        </div>
+
+        <div id="budgetControlsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: UPI DEEP-LINK GENERATOR & ANDROID / AA ARCHITECTURE BLUEPRINT -->
+    <section id="tabPanelBlueprint" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Live UPI Deep Link & Intent Tester (5 cols) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">NPCI UPI Intent Builder</span>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Live `upi://pay` Deep-Link Generator</h2>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Want your app to trigger actual payments via installed <strong>PhonePe, Paytm, or Google Pay</strong> apps without needing your own TPAP license? Generate a standard NPCI `upi://pay` intent link below, log the expense category upfront, and invoke the user's UPI app.
+          </p>
+
+          <div class="space-y-3">
+            <div>
+              <label for="intentPa" class="block text-xs font-semibold text-slate-600 mb-1">Payee VPA (`pa`)</label>
+              <input id="intentPa" type="text" value="merchant@ybl" oninput="updateUpiDeepLink()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono" />
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label for="intentPn" class="block text-xs font-semibold text-slate-600 mb-1">Payee Name (`pn`)</label>
+                <input id="intentPn" type="text" value="Swiggy Food" oninput="updateUpiDeepLink()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm" />
+              </div>
+              <div>
+                <label for="intentAm" class="block text-xs font-semibold text-slate-600 mb-1">Amount ₹ (`am`)</label>
+                <input id="intentAm" type="number" value="250" min="1" oninput="updateUpiDeepLink()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold" />
+              </div>
+            </div>
+            <div>
+              <label for="intentTn" class="block text-xs font-semibold text-slate-600 mb-1">Transaction Note (`tn`)</label>
+              <input id="intentTn" type="text" value="Lunch order" oninput="updateUpiDeepLink()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm" />
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 text-cyan-300 font-mono text-xs break-all" id="generatedUpiUriDisplay">
+            upi://pay?pa=merchant@ybl&amp;pn=Swiggy%20Food&amp;am=250.00&amp;cu=INR&amp;tn=Lunch%20order
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="btnCopyUpiUri" onclick="copyUpiDeepLink()" class="flex-1 py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs sm:text-sm transition">
+              Copy UPI Intent URI
+            </button>
+            <button type="button" id="btnTestIntentLog" onclick="simulateIntentLaunch()" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs sm:text-sm transition">
+              Simulate Intent &amp; Log
+            </button>
+          </div>
+        </div>
+
+        <!-- Production Architecture Blueprint & Code (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">Production Implementation Architecture</h2>
+              <p class="text-xs text-slate-500">3 ways to build an automatic PhonePe / Paytm expense tracker in India</p>
+            </div>
+            <button type="button" id="btnCopyKotlinSnippet" onclick="copyArchitectureCode()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition">
+              Copy Android Kotlin Parser
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div class="p-3.5 rounded-xl bg-purple-50/70 border border-purple-100">
+              <p class="font-bold text-purple-950">1. NotificationListener (Android)</p>
+              <p class="text-slate-600 mt-1">Captures push alerts from `com.phonepe.app`, `net.one97.paytm`, and bank SMS in real time without Play Store SMS restriction issues.</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-cyan-50/70 border border-cyan-100">
+              <p class="font-bold text-cyan-950">2. UPI Intent Wrapper</p>
+              <p class="text-slate-600 mt-1">Invokes PhonePe/Paytm via `upi://pay` URI, reads the `ActivityResult` (`Status=SUCCESS&amp;txnId=...`), and saves the category immediately.</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+              <p class="font-bold text-emerald-950">3. Account Aggregator (Setu/Finvu)</p>
+              <p class="text-slate-600 mt-1">Works on both iOS &amp; Android. Fetches consent-based bank statements directly from HDFC, SBI, ICICI, and Axis FIPs.</p>
+            </div>
+          </div>
+
+          <pre id="kotlinCodeBlock" class="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-[11px] leading-relaxed overflow-x-auto custom-scrollbar"><code>// Android NotificationListenerService for PhonePe, Paytm &amp; Bank UPI Alerts
+class UpiExpenseNotificationService : NotificationListenerService() {
+    private val upiPackages = setOf(
+        "com.phonepe.app", "net.one97.paytm",
+        "com.google.android.apps.nbu.paisa.user"
+    )
+    private val amtRegex = Regex("""(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+    private val merchantRegex = Regex("""(?:to|at|paid to|trf to)\s+([A-Za-z0-9 &amp;._-]+?)(?:\s+on|\s+via|\s+Ref|\s+UPI|\.)""", RegexOption.IGNORE_CASE)
+
+    override fun onNotificationPosted(sbn: StatusBarNotification) {
+        val extras = sbn.notification.extras
+        val text = extras.getCharSequence("android.text")?.toString() ?: return
+        if (!text.contains("debited", true) &amp;&amp; !text.contains("paid", true)) return
+
+        val amount = amtRegex.find(text)?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull() ?: return
+        val merchant = merchantRegex.find(text)?.groupValues?.get(1)?.trim() ?: "UPI Merchant"
+        val sourceApp = when (sbn.packageName) {
+            "com.phonepe.app" -&gt; "PhonePe"
+            "net.one97.paytm" -&gt; "Paytm"
+            else -&gt; "Bank SMS / GPay"
+        }
+        ExpenseRepository.autoCategorizeAndSave(amount, merchant, sourceApp, text)
+    }
+}</code></pre>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 5: AI EXPENSE COPILOT & PYTHON FLASK + SQLITE BACKEND -->
+    <section id="tabPanelAi" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left: Conversational AI Financial Copilot (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">Python AI Engine (`/api/ai-advisor`)</span>
+              <span id="backendStatusBadge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                AI + SQLite Engine Active
+              </span>
+            </div>
+            <h2 class="text-lg font-bold text-slate-900 mt-2">PayPulse AI Financial Copilot &amp; Anomaly Detector</h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Ask questions about your PhonePe &amp; Paytm spending, detect unusual high-value debits, or get personalized monthly savings targets powered by `ai_engine.py`.
+            </p>
+          </div>
+
+          <!-- Quick AI Prompt Chips -->
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="askAiQuickPrompt('Where can I save money this month?')" class="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 text-xs font-semibold transition">
+              💡 Where can I save this month?
+            </button>
+            <button type="button" onclick="askAiQuickPrompt('Analyze my Swiggy & Food spending')" class="px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-800 border border-orange-200 text-xs font-semibold transition">
+              🍔 Analyze Food &amp; Swiggy spend
+            </button>
+            <button type="button" onclick="askAiQuickPrompt('Compare my PhonePe vs Paytm rail usage')" class="px-3 py-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-semibold transition">
+              📊 PhonePe vs Paytm breakdown
+            </button>
+            <button type="button" onclick="askAiQuickPrompt('Flag any unusual or high anomaly transactions')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold transition">
+              🚨 Flag spending anomalies
+            </button>
+          </div>
+
+          <!-- AI Chat Conversation Log -->
+          <div id="aiChatMessages" class="space-y-3 bg-slate-900 text-slate-100 p-4 rounded-2xl h-64 overflow-y-auto custom-scrollbar text-xs sm:text-sm">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- AI Chat Input Form -->
+          <form id="aiChatForm" onsubmit="handleAiChatSubmit(event)" class="flex gap-2">
+            <input id="aiQueryInput" type="text" required placeholder="Ask AI: e.g., How much can I save on dining? Any unusual bills?" class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            <button type="submit" id="btnSendAiQuery" class="px-4 py-2.5 rounded-xl upi-gradient hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-sm transition whitespace-nowrap">
+              Ask AI Copilot
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: AI Anomaly Radar & Flask + SQLite Telemetry (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-3.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-slate-900">AI Cashflow &amp; Anomaly Telemetry</h3>
+              <span class="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">Real-Time</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block">Avg UPI Ticket Size</span>
+                <span id="aiMetricAvgTicket" class="text-base font-extrabold text-slate-900 mt-0.5 block">₹782</span>
+              </div>
+              <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                <span class="text-emerald-800 block">AI Projected Savings</span>
+                <span id="aiMetricPotentialSavings" class="text-base font-extrabold text-emerald-700 mt-0.5 block">₹450/mo</span>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-500 block">Top Merchant</span>
+                <span id="aiMetricTopMerchant" class="text-sm font-bold text-slate-900 mt-0.5 block truncate">Myntra Designs</span>
+              </div>
+              <div class="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                <span class="text-rose-800 block">Anomalies Flagged</span>
+                <span id="aiMetricAnomalyCount" class="text-base font-extrabold text-rose-600 mt-0.5 block">1 high debit</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Full-Stack Python Flask + SQLite Architecture Card -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-slate-900">Full-Stack Flask + SQLite3 Stack</h3>
+              <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-cyan-300">paypulse.db</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              This project runs with a modular <strong>Python Flask REST API (`app.py`)</strong>, <strong>SQLite3 database (`database.py`)</strong>, and <strong>Hybrid AI/NLP Engine (`ai_engine.py`)</strong>.
+            </p>
+            <div class="space-y-1.5 text-xs font-mono bg-slate-900 text-slate-200 p-3.5 rounded-xl overflow-x-auto">
+              <p class="text-cyan-400"># Active REST API Endpoints (Flask + SQLite3)</p>
+              <p>GET  /api/state              → Load SQLite tables &amp; AI summary</p>
+              <p>POST /api/transactions       → Auto-classify &amp; insert UPI debit</p>
+              <p>POST /api/parse-sms          → AI regex/NLP bank SMS extraction</p>
+              <p>POST /api/ai-advisor         → Conversational AI expense copilot</p>
+              <p>POST /api/banks              → RBI AA / NPCI bank account link</p>
+              <p>POST /api/budgets &amp; /rules   → Persist budget caps &amp; AI rules</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: NPCI UPI PIN PAD (For Payment & Balance Check) -->
+  <div id="upiPinModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-200">
+      <!-- Top NPCI Style Header -->
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <p id="pinModalBankName" class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">HDFC Bank •••• 9104</p>
+          <p id="pinModalTitle" class="text-sm font-bold text-white mt-0.5">Paying Zomato Order</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-white/10 text-cyan-300">NPCI UPI</span>
+          <p id="pinModalAmount" class="text-base font-extrabold text-emerald-400 mt-0.5">₹360.00</p>
+        </div>
+      </div>
+
+      <!-- 4-Digit PIN Dots -->
+      <div class="p-6 text-center space-y-4">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Enter 4-Digit UPI PIN (Any 4 digits)</p>
+        <div id="pinDotsContainer" class="flex items-center justify-center gap-4 py-2">
+          <span class="pin-dot w-4 h-4 rounded-full border-2 border-slate-400 inline-block transition-all"></span>
+          <span class="pin-dot w-4 h-4 rounded-full border-2 border-slate-400 inline-block transition-all"></span>
+          <span class="pin-dot w-4 h-4 rounded-full border-2 border-slate-400 inline-block transition-all"></span>
+          <span class="pin-dot w-4 h-4 rounded-full border-2 border-slate-400 inline-block transition-all"></span>
+        </div>
+
+        <!-- Numeric Keypad -->
+        <div class="grid grid-cols-3 gap-2.5 pt-2">
+          <button type="button" onclick="pressPinDigit('1')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">1</button>
+          <button type="button" onclick="pressPinDigit('2')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">2</button>
+          <button type="button" onclick="pressPinDigit('3')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">3</button>
+          <button type="button" onclick="pressPinDigit('4')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">4</button>
+          <button type="button" onclick="pressPinDigit('5')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">5</button>
+          <button type="button" onclick="pressPinDigit('6')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">6</button>
+          <button type="button" onclick="pressPinDigit('7')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">7</button>
+          <button type="button" onclick="pressPinDigit('8')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">8</button>
+          <button type="button" onclick="pressPinDigit('9')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">9</button>
+          <button type="button" onclick="closePinModal()" class="py-3 rounded-xl bg-rose-50 hover:bg-rose-100 font-semibold text-xs text-rose-700">Cancel</button>
+          <button type="button" onclick="pressPinDigit('0')" class="py-3 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-lg text-slate-800">0</button>
+          <button type="button" onclick="submitPinAction()" class="py-3 rounded-xl bg-purple-600 hover:bg-purple-700 font-bold text-sm text-white">✓ Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: QR CODE SCANNER SIMULATOR -->
+  <div id="qrScannerModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="upi-gradient text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">Scan Any BharatQR / PhonePe / Paytm QR</h3>
+          <p class="text-xs text-purple-100">Auto-identifies merchant MCC &amp; expense category</p>
+        </div>
+        <button type="button" onclick="closeQrModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">✕</button>
+      </div>
+
+      <div class="p-5 space-y-3.5">
+        <!-- Live Front / Back Camera Viewfinder -->
+        <div class="relative h-60 rounded-2xl bg-slate-950 overflow-hidden flex flex-col items-center justify-center border-2 border-purple-500 shadow-inner">
+          <!-- Real video stream from front camera -->
+          <video id="qrCameraVideo" playsinline autoplay muted class="w-full h-full object-cover hidden"></video>
+          <!-- Hidden canvas for real-time QR image processing -->
+          <canvas id="qrScanCanvas" class="hidden"></canvas>
+
+          <!-- Laser Scan Line Overlay -->
+          <div id="qrLaserLine" class="qr-scan-line absolute left-6 right-6 h-0.5 bg-cyan-400 shadow-[0_0_12px_#22d3ee] z-10 pointer-events-none"></div>
+
+          <!-- Target Reticle Box -->
+          <div class="absolute inset-8 border-2 border-dashed border-white/60 rounded-xl pointer-events-none z-10 flex items-center justify-center">
+            <span class="text-[10px] uppercase tracking-wider font-bold text-white/80 bg-black/50 px-2 py-0.5 rounded backdrop-blur-xs">Align UPI QR Code Inside</span>
+          </div>
+
+          <!-- Camera Status & Permission Overlay (Shows if camera loading, blocked, or inactive) -->
+          <div id="qrCameraStatusOverlay" class="absolute inset-0 bg-slate-950/95 text-white flex flex-col items-center justify-center p-4 text-center z-20 space-y-2.5">
+            <div class="w-11 h-11 rounded-2xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center text-purple-300">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div>
+              <p id="qrCameraStatusTitle" class="text-xs font-bold text-slate-100">Front Camera Access</p>
+              <p id="qrCameraStatusMsg" class="text-[11px] text-slate-400 mt-0.5 max-w-xs">Connecting to device front camera (selfie cam) to scan BharatQR &amp; UPI codes live.</p>
+            </div>
+            <button type="button" id="btnStartCameraManually" onclick="startCameraStream('user')" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5">
+              <span>📷 Start Front Camera Feed</span>
+            </button>
+          </div>
+
+          <!-- Top-Right Switch Camera Controls (Front Cam / Back Cam) -->
+          <div class="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5">
+            <button type="button" id="btnToggleCameraFacing" onclick="toggleCameraFacing()" class="px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-semibold border border-white/20 backdrop-blur-sm transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span id="cameraFacingLabel">Front Cam</span>
+            </button>
+          </div>
+
+          <!-- Bottom Live Status Badge -->
+          <div class="absolute bottom-2 left-2.5 right-2.5 z-30 flex items-center justify-between pointer-events-none">
+            <span id="qrLiveDetectBadge" class="text-[10px] font-bold uppercase tracking-wider text-cyan-300 bg-black/70 px-2 py-0.5 rounded-full border border-cyan-400/30 backdrop-blur-xs">
+              Front Cam Live Scanner
+            </span>
+          </div>
+        </div>
+
+        <!-- Option to Upload QR Screenshot / Photo -->
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 text-xs">
+          <div>
+            <p class="font-bold text-purple-950">Have a saved QR image / screenshot?</p>
+            <p class="text-[11px] text-slate-500">Auto-decodes UPI merchant &amp; amount from photo</p>
+          </div>
+          <label for="qrImageFileInput" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer transition shadow-xs whitespace-nowrap">
+            Upload QR Photo
+          </label>
+          <input id="qrImageFileInput" type="file" accept="image/*" onchange="handleQrImageUpload(event)" class="hidden" />
+        </div>
+
+        <!-- Presets / Quick Test Fallbacks -->
+        <div class="space-y-1.5 pt-1 border-t border-slate-100">
+          <p class="text-[11px] font-semibold text-slate-500">Or Tap a Preset Merchant QR to Instant-Test:</p>
+          <div class="space-y-1.5">
+            <button type="button" onclick="completeQrScan('Third Wave Coffee', 'thirdwave@ybl', 310, 'PhonePe')" class="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 flex items-center justify-between text-left transition">
+              <div>
+                <p class="text-xs font-bold text-slate-900">☕ Third Wave Coffee Roasters</p>
+                <p class="text-[11px] text-slate-500 font-mono">thirdwave@ybl • MCC 5812 (Food &amp; Dining)</p>
+              </div>
+              <span class="text-xs font-extrabold text-purple-700">₹310</span>
+            </button>
+
+            <button type="button" onclick="completeQrScan('DMart Supermarket', 'dmart@icici', 1450, 'Paytm')" class="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 flex items-center justify-between text-left transition">
+              <div>
+                <p class="text-xs font-bold text-slate-900">🛒 Avenue Supermarts (DMart)</p>
+                <p class="text-[11px] text-slate-500 font-mono">dmart@icici • MCC 5411 (Groceries)</p>
+              </div>
+              <span class="text-xs font-extrabold text-purple-700">₹1,450</span>
+            </button>
+
+            <button type="button" onclick="completeQrScan('IndianOil Fuel Station', 'iocl@sbi', 800, 'PhonePe')" class="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-purple-50 border border-slate-200 flex items-center justify-between text-left transition">
+              <div>
+                <p class="text-xs font-bold text-slate-900">⛽ IndianOil Petrol Pump</p>
+                <p class="text-[11px] text-slate-500 font-mono">iocl@sbi • MCC 5541 (Travel &amp; Commute)</p>
+              </div>
+              <span class="text-xs font-extrabold text-purple-700">₹800</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: SPLIT BILL CALCULATOR & TRACKER -->
+  <div id="splitBillModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="bg-emerald-700 text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">Split UPI Expense with Friends</h3>
+          <p class="text-xs text-emerald-100">Logs only your net share or tracks pending UPI requests</p>
+        </div>
+        <button type="button" onclick="closeSplitModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div>
+          <label for="splitMerchantInput" class="block text-xs font-semibold text-slate-600 mb-1">Group Expense Title / Merchant</label>
+          <input id="splitMerchantInput" type="text" value="Barbeque Nation Dinner" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="splitTotalInput" class="block text-xs font-semibold text-slate-600 mb-1">Total Bill Paid (₹)</label>
+            <input id="splitTotalInput" type="number" value="2400" min="10" oninput="updateSplitPreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+          <div>
+            <label for="splitPeopleCount" class="block text-xs font-semibold text-slate-600 mb-1">Total People (Incl. You)</label>
+            <input id="splitPeopleCount" type="number" value="4" min="2" max="20" oninput="updateSplitPreview()" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-bold" />
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-600">Your Personal Expense Share:</span>
+            <span id="splitYourShare" class="font-extrabold text-emerald-800 text-sm">₹600</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Collect via PhonePe/Paytm Split Link:</span>
+            <span id="splitCollectShare" class="font-bold text-slate-800">₹1,800 (3 friends × ₹600)</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button type="button" onclick="commitSplitExpense('my_share')" class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition">
+            Log My Share (₹<span id="splitBtnShareAmt">600</span>)
+          </button>
+          <button type="button" onclick="commitSplitExpense('full_bill')" class="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition">
+            Log Full Bill
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: BANK ACCOUNT LOGIN & RBI ACCOUNT AGGREGATOR / UPI ONBOARDING -->
+  <div id="bankLoginModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="upi-gradient text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-white/15 text-cyan-200">Zero NetBanking Password Required</span>
+          <h3 class="text-base font-bold mt-1">Login &amp; Link Bank Account</h3>
+          <p class="text-xs text-purple-100">RBI Account Aggregator (Setu/Finvu) &amp; NPCI SIM-Binding Flow</p>
+        </div>
+        <button type="button" onclick="closeBankLoginModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">✕</button>
+      </div>
+
+      <div class="p-5 sm:p-6 space-y-4">
+        <!-- Step Indicator -->
+        <div class="flex items-center justify-between text-xs font-semibold text-slate-500 border-b border-slate-100 pb-3">
+          <span id="bankStepIndicator1" class="text-purple-700 font-bold">1. Select Bank &amp; Mobile</span>
+          <span>→</span>
+          <span id="bankStepIndicator2">2. Verify Bank / AA OTP</span>
+          <span>→</span>
+          <span id="bankStepIndicator3">3. Auto-Sync Linked</span>
+        </div>
+
+        <!-- STEP 1: Choose Bank, Mobile & Method -->
+        <div id="bankLoginStep1" class="space-y-3.5">
+          <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 leading-relaxed">
+            <strong>Security Note:</strong> In India, apps like PhonePe, Paytm, and Expense Trackers <strong>never</strong> ask for your NetBanking username or password. You authenticate using your <strong>SIM-bound mobile number + Bank/AA OTP</strong>.
+          </div>
+
+          <div>
+            <label for="loginMobileInput" class="block text-xs font-semibold text-slate-700 mb-1">Bank-Registered Mobile Number</label>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-2 rounded-xl bg-slate-100 border border-slate-300 text-xs sm:text-sm font-bold text-slate-700">+91</span>
+              <input id="loginMobileInput" type="tel" maxlength="10" value="9876543210" placeholder="10-digit mobile number" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="loginBankSelect" class="block text-xs font-semibold text-slate-700 mb-1">Select Your Bank (or Custom below)</label>
+              <select id="loginBankSelect" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="HDFC Bank">HDFC Bank</option>
+                <option value="State Bank of India">State Bank of India (SBI)</option>
+                <option value="ICICI Bank">ICICI Bank</option>
+                <option value="Axis Bank">Axis Bank</option>
+                <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                <option value="Punjab National Bank">Punjab National Bank (PNB)</option>
+                <option value="Bank of Baroda">Bank of Baroda (BoB)</option>
+                <option value="Canara Bank">Canara Bank</option>
+                <option value="IndusInd Bank">IndusInd Bank</option>
+                <option value="IDFC FIRST Bank">IDFC FIRST Bank</option>
+                <option value="Federal Bank">Federal Bank</option>
+              </select>
+            </div>
+            <div>
+              <label for="loginCustomBankInput" class="block text-xs font-semibold text-slate-700 mb-1">Or Type Custom Bank Name</label>
+              <input id="loginCustomBankInput" type="text" placeholder="e.g., Yes Bank, AU Small Finance" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div>
+              <label for="loginOwnLast4Input" class="block text-xs font-semibold text-slate-700 mb-1">Your A/C Last 4 Digits</label>
+              <input id="loginOwnLast4Input" type="text" maxlength="4" placeholder="e.g., 4512" value="4512" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            </div>
+            <div>
+              <label for="loginOwnVpaInput" class="block text-xs font-semibold text-slate-700 mb-1">Your UPI ID (VPA)</label>
+              <input id="loginOwnVpaInput" type="text" placeholder="yourname@ybl" value="myaccount@ybl" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            </div>
+            <div>
+              <label for="loginOwnBalanceInput" class="block text-xs font-semibold text-slate-700 mb-1">Opening Balance (₹)</label>
+              <input id="loginOwnBalanceInput" type="number" min="0" step="1" placeholder="50000" value="45000" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-purple-600" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            <div>
+              <label for="loginAuthProtocol" class="block text-xs font-semibold text-slate-700 mb-1">Authentication Protocol</label>
+              <select id="loginAuthProtocol" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <option value="RBI Account Aggregator (Finvu/Setu)">RBI Account Aggregator (Auto-Statements)</option>
+                <option value="NPCI UPI SIM-Binding">NPCI UPI SIM-Binding (Payments + Balance)</option>
+                <option value="Personal SMS Webhook Mode">Personal Phone SMS Auto-Forwarder</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 cursor-pointer mt-2 sm:mt-5">
+              <input id="loginClearDemoCheckbox" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
+              <span class="text-[11px] font-semibold text-amber-950 leading-tight">Clear demo data &amp; track only my own messages</span>
+            </label>
+          </div>
+
+          <button type="button" id="btnSendBankOtp" onclick="proceedToBankStep2()" class="w-full py-3 rounded-xl upi-gradient hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition">
+            Send Verification OTP to +91 Mobile
+          </button>
+        </div>
+
+        <!-- STEP 2: OTP & RBI Consent Approval -->
+        <div id="bankLoginStep2" class="hidden space-y-4">
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+            <p class="font-bold text-slate-800" id="otpStepSubtitle">Discovering accounts at ICICI Bank...</p>
+            <p class="text-slate-500">We found savings account <strong id="discoveredMaskedAcc" class="text-slate-900">•••• 7732</strong> linked to your mobile number. Enter the 6-digit OTP to approve auto-tracking consent.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="bankOtpInput" class="text-xs font-semibold text-slate-700">Enter 6-Digit Bank / AA OTP</label>
+              <button type="button" onclick="fillDemoBankOtp()" class="text-xs font-bold text-purple-700 hover:underline">Auto-Fill Demo OTP (482910)</button>
+            </div>
+            <input id="bankOtpInput" type="text" maxlength="6" value="482910" placeholder="482910" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-center font-mono text-lg font-extrabold tracking-widest focus:outline-none focus:ring-2 focus:ring-purple-600" />
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-950 space-y-1">
+            <p class="font-bold">✓ RBI DEPA / Account Aggregator Consent Summary:</p>
+            <p>• Purpose: Automatic UPI &amp; bank expense categorization</p>
+            <p>• Access Mode: Read-only transaction stream (Revocable anytime)</p>
+          </div>
+
+          <div class="flex gap-2.5">
+            <button type="button" onclick="resetBankModalToStep1()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm">Back</button>
+            <button type="button" id="btnVerifyBankOtp" onclick="completeBankAccountLinking()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition">
+              Approve Consent &amp; Link Bank Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: EXPORT CSV BY DATE RANGE, MONTH & YEAR -->
+  <div id="exportDateModal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-200">
+      <div class="upi-gradient text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold">Export Transactions to CSV</h3>
+          <p class="text-xs text-purple-100">Select day-to-day dates, month, or year to download</p>
+        </div>
+        <button type="button" onclick="closeExportModal()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white">✕</button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1.5">1. Timeframe Scope / Presets</label>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button type="button" onclick="setExportModalPreset('ALL')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-800 font-semibold text-center transition">All Time</button>
+            <button type="button" onclick="setExportModalPreset('THIS_MONTH')" class="py-2 px-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-semibold text-center border border-purple-200 transition">Oct 2026</button>
+            <button type="button" onclick="setExportModalPreset('LAST_MONTH')" class="py-2 px-2 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-800 font-semibold text-center transition">Sep 2026</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="exportFromDateInput" class="block font-bold text-slate-700 mb-1">From Date (Day)</label>
+            <input id="exportFromDateInput" type="date" value="2026-10-01" onchange="updateExportModalStats()" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-purple-600" />
+          </div>
+          <div>
+            <label for="exportToDateInput" class="block font-bold text-slate-700 mb-1">To Date (Day)</label>
+            <input id="exportToDateInput" type="date" value="2026-10-31" onchange="updateExportModalStats()" class="w-full px-3 py-2 rounded-xl border border-slate-300 font-medium focus:ring-2 focus:ring-purple-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="exportMonthSelect" class="block font-bold text-slate-700 mb-1">Or Specific Month</label>
+            <select id="exportMonthSelect" onchange="syncExportModalMonthYear()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+              <option value="ALL">All Months</option>
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10" selected>October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div>
+            <label for="exportYearSelect" class="block font-bold text-slate-700 mb-1">Or Specific Year</label>
+            <select id="exportYearSelect" onchange="syncExportModalMonthYear()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+              <option value="ALL">All Years</option>
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="exportTypeSelect" class="block font-bold text-slate-700 mb-1">Transaction Type Filter</label>
+          <select id="exportTypeSelect" onchange="updateExportModalStats()" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-medium focus:ring-2 focus:ring-purple-600">
+            <option value="ALL">All Transactions (Debits &amp; Credits)</option>
+            <option value="DEBIT">Debits Only (-)</option>
+            <option value="CREDIT">Credits Only (+)</option>
+          </select>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+          <div class="flex justify-between font-bold text-slate-800">
+            <span>Matching Transactions:</span>
+            <span id="exportModalCount" class="text-purple-700">0 records</span>
+          </div>
+          <div class="flex justify-between text-slate-500">
+            <span>Total Debits: <strong id="exportModalDebits" class="text-rose-600">-₹0</strong></span>
+            <span>Total Credits: <strong id="exportModalCredits" class="text-emerald-600">+₹0</strong></span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 pt-1">
+          <button type="button" id="btnDownloadFilteredCsvModal" onclick="executeFilteredCsvDownload()" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span>📥 Download Filtered CSV File</span>
+          </button>
+          <button type="button" onclick="applyModalFilterToFeed()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition">
+            Apply Date Filter to Live Feed Screen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 hidden max-w-sm bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-3">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+    <p id="toastMessage" class="text-xs sm:text-sm font-medium"></p>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
